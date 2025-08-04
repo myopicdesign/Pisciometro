@@ -280,34 +280,34 @@
     }
 
     async function startListening() {
-      if (isListening) return;
+  if (isListening) return;
 
-      isListening = true;
-      mlTotal = 0;
-      startTime = Date.now();
+  isListening = true;
+  startTime = Date.now(); // <-- aggiorna solo il tempo, NON azzerare mlTotal
 
-      await recognizer.listen(result => {
-        const labels = recognizer.wordLabels();
-        const scores = result.scores;
+  await recognizer.listen(result => {
+    const labels = recognizer.wordLabels();
+    const scores = result.scores;
 
-        labelContainer.innerHTML = "";
-        for (let i = 0; i < labels.length; i++) {
-          labelContainer.innerHTML += `${labels[i]}: ${scores[i].toFixed(2)}<br>`;
-        }
-
-        const liquidIndex = labels.indexOf("Liquido");
-        const liquidScore = liquidIndex >= 0 ? scores[liquidIndex] : 0;
-
-        if (liquidScore >= 0.5 && Date.now() - startTime > 3000) {
-          mlTotal += 7.5;
-          updateWave(mlTotal);
-        }
-      }, {
-        overlapFactor: 0.5,
-        includeSpectrogram: false,
-        probabilityThreshold: 0.5
-      });
+    labelContainer.innerHTML = "";
+    for (let i = 0; i < labels.length; i++) {
+      labelContainer.innerHTML += `${labels[i]}: ${scores[i].toFixed(2)}<br>`;
     }
+
+    const liquidIndex = labels.indexOf("Liquido");
+    const liquidScore = liquidIndex >= 0 ? scores[liquidIndex] : 0;
+
+    if (liquidScore >= 0.5 && Date.now() - startTime > 3000) {
+      mlTotal += 7.5;
+      updateWave(mlTotal);
+    }
+  }, {
+    overlapFactor: 0.5,
+    includeSpectrogram: false,
+    probabilityThreshold: 0.5
+  });
+}
+
 
     function stopListening() {
       if (!isListening) return;
