@@ -194,6 +194,16 @@
       max-width: 400px;
       margin-left: auto;
       margin-right: auto;
+      display: none; /* hidden by default */
+    }
+
+    .toggle-debug {
+      margin-top: 20px;
+      font-size: 20px;
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -235,6 +245,10 @@
         </button>
       </div>
 
+      <button class="toggle-debug" id="toggleDebug">
+        <i class="fa-solid fa-angle-down"></i>
+      </button>
+
       <div id="label-container"></div>
     </main>
   </div>
@@ -267,47 +281,39 @@
     async function createModel() {
       const checkpointURL = URL + "model.json";
       const metadataURL = URL + "metadata.json";
-
-      const model = speechCommands.create(
-        "BROWSER_FFT",
-        undefined,
-        checkpointURL,
-        metadataURL
-      );
-
+      const model = speechCommands.create("BROWSER_FFT", undefined, checkpointURL, metadataURL);
       await model.ensureModelLoaded();
       return model;
     }
 
     async function startListening() {
-  if (isListening) return;
+      if (isListening) return;
 
-  isListening = true;
-  startTime = Date.now(); // <-- aggiorna solo il tempo, NON azzerare mlTotal
+      isListening = true;
+      startTime = Date.now();
 
-  await recognizer.listen(result => {
-    const labels = recognizer.wordLabels();
-    const scores = result.scores;
+      await recognizer.listen(result => {
+        const labels = recognizer.wordLabels();
+        const scores = result.scores;
 
-    labelContainer.innerHTML = "";
-    for (let i = 0; i < labels.length; i++) {
-      labelContainer.innerHTML += `${labels[i]}: ${scores[i].toFixed(2)}<br>`;
+        labelContainer.innerHTML = "";
+        for (let i = 0; i < labels.length; i++) {
+          labelContainer.innerHTML += `${labels[i]}: ${scores[i].toFixed(2)}<br>`;
+        }
+
+        const liquidIndex = labels.indexOf("Liquido");
+        const liquidScore = liquidIndex >= 0 ? scores[liquidIndex] : 0;
+
+        if (liquidScore >= 0.5 && Date.now() - startTime > 3000) {
+          mlTotal += 7.5;
+          updateWave(mlTotal);
+        }
+      }, {
+        overlapFactor: 0.5,
+        includeSpectrogram: false,
+        probabilityThreshold: 0.5
+      });
     }
-
-    const liquidIndex = labels.indexOf("Liquido");
-    const liquidScore = liquidIndex >= 0 ? scores[liquidIndex] : 0;
-
-    if (liquidScore >= 0.5 && Date.now() - startTime > 3000) {
-      mlTotal += 7.5;
-      updateWave(mlTotal);
-    }
-  }, {
-    overlapFactor: 0.5,
-    includeSpectrogram: false,
-    probabilityThreshold: 0.5
-  });
-}
-
 
     function stopListening() {
       if (!isListening) return;
@@ -339,6 +345,14 @@
 
       document.getElementById("backBtn").addEventListener("click", () => {
         alert("Back button pressed!");
+      });
+
+      // Toggle debug info
+      const toggleBtn = document.getElementById("toggleDebug");
+      toggleBtn.addEventListener("click", () => {
+        const isVisible = labelContainer.style.display === "block";
+        labelContainer.style.display = isVisible ? "none" : "block";
+        toggleBtn.innerHTML = `<i class="fa-solid ${isVisible ? 'fa-angle-down' : 'fa-angle-up'}"></i>`;
       });
 
       updateWave(0);
